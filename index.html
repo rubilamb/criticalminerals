@@ -54,23 +54,23 @@
 
     <!-- KPI Cards -->
     <div class="kpi-row">
-      <div class="kpi-card" id="kpi-imports">
-        <div class="kpi-label">Total Imports</div>
+      <div class="kpi-card" id="kpi-total">
+        <div class="kpi-label">Total Trade Value</div>
         <div class="kpi-value">—</div>
         <div class="kpi-change"></div>
       </div>
-      <div class="kpi-card" id="kpi-exports">
-        <div class="kpi-label">Total Exports</div>
+      <div class="kpi-card" id="kpi-weight">
+        <div class="kpi-label">Total Weight</div>
         <div class="kpi-value">—</div>
         <div class="kpi-change"></div>
       </div>
-      <div class="kpi-card" id="kpi-deficit">
-        <div class="kpi-label">Trade Deficit</div>
+      <div class="kpi-card" id="kpi-placeholder1">
+        <div class="kpi-label">—</div>
         <div class="kpi-value">—</div>
         <div class="kpi-change"></div>
       </div>
-      <div class="kpi-card" id="kpi-minerals">
-        <div class="kpi-label">Minerals Tracked</div>
+      <div class="kpi-card" id="kpi-placeholder2">
+        <div class="kpi-label">—</div>
         <div class="kpi-value">—</div>
         <div class="kpi-change"></div>
       </div>
@@ -83,8 +83,8 @@
       <div class="panel">
         <div class="panel-header">
           <div>
-            <div class="panel-title">Global Trade Overview</div>
-            <div class="panel-subtitle">Total import vs export value across all minerals</div>
+            <div class="panel-title">Trade Overview</div>
+            <div class="panel-subtitle" id="overview-subtitle">Total value across all minerals</div>
           </div>
         </div>
         <div class="chart-container" id="chart-overview"></div>
@@ -95,7 +95,7 @@
         <div class="panel-header">
           <div>
             <div class="panel-title">Mineral Explorer</div>
-            <div class="panel-subtitle">Value and weight trends for selected mineral</div>
+            <div class="panel-subtitle" id="mineral-subtitle">Value and weight trends for selected mineral</div>
           </div>
           <div class="panel-controls">
             <select id="panel-mineral-select"></select>
@@ -105,72 +105,68 @@
       </div>
 
       <!-- Panel 3: Top Minerals -->
-      <div class="panel">
+      <div class="panel full-width">
         <div class="panel-header">
           <div>
-            <div class="panel-title">Top Minerals by Value</div>
-            <div class="panel-subtitle">Ranked for selected year and flow direction</div>
+            <div class="panel-title">Minerals by Value</div>
+            <div class="panel-subtitle" id="top-subtitle">Ranked for selected year and flow direction</div>
           </div>
         </div>
         <div class="chart-container" id="chart-top"></div>
       </div>
 
-      <!-- Panel 4: Trade Balance Heatmap -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title">Trade Balance Heatmap</div>
-            <div class="panel-subtitle">Green = surplus, Red = deficit (exports minus imports)</div>
-          </div>
-        </div>
-        <div class="chart-container" id="chart-heatmap" style="min-height:500px"></div>
-      </div>
-
     </div>
 
-    <!-- Renewable Energy Minerals — Trading Partners Section -->
+    <!-- Trading Partners Section -->
     <div class="section-divider">
       <div class="section-header">
-        <h2 class="section-title">Renewable Energy Minerals — Trading Partners</h2>
-        <p class="section-subtitle">Bilateral trade flows for key minerals powering the energy transition</p>
+        <h2 class="section-title">Trading Partners</h2>
+        <p class="section-subtitle">Bilateral trade flows and market concentration</p>
       </div>
       <div class="filters" style="margin-top:0.75rem; padding:0;">
         <div class="filter-group">
           <label>Mineral</label>
-          <select id="re-mineral-select"></select>
+          <select id="tp-mineral-select"></select>
         </div>
         <div class="filter-group">
           <label>Year</label>
-          <select id="re-year-select"></select>
+          <select id="tp-year-select"></select>
+        </div>
+        <div class="filter-group">
+          <label>Flow</label>
+          <select id="tp-flow-select">
+            <option value="Import">Imports</option>
+            <option value="Export">Exports</option>
+          </select>
         </div>
       </div>
     </div>
 
     <div class="dashboard">
 
-      <!-- Panel 5: Top Exporters -->
+      <!-- Panel 4: Top Countries -->
       <div class="panel">
         <div class="panel-header">
           <div>
-            <div class="panel-title">Top Exporting Countries</div>
-            <div class="panel-subtitle">Largest source countries by export value</div>
+            <div class="panel-title" id="top-countries-title">Top Countries</div>
+            <div class="panel-subtitle" id="top-countries-subtitle">By trade value</div>
           </div>
         </div>
-        <div class="chart-container" id="chart-top-exporters"></div>
+        <div class="chart-container" id="chart-top-countries"></div>
       </div>
 
-      <!-- Panel 6: Top Importers -->
+      <!-- Panel 5: Market Share -->
       <div class="panel">
         <div class="panel-header">
           <div>
-            <div class="panel-title">Top Importing Countries</div>
-            <div class="panel-subtitle">Largest destination countries by import value</div>
+            <div class="panel-title" id="share-title">Market Share</div>
+            <div class="panel-subtitle" id="share-subtitle">Country concentration</div>
           </div>
         </div>
-        <div class="chart-container" id="chart-top-importers"></div>
+        <div class="chart-container" id="chart-share"></div>
       </div>
 
-      <!-- Panel 7: Sankey Trade Flows -->
+      <!-- Panel 6: Sankey Trade Flows -->
       <div class="panel full-width">
         <div class="panel-header">
           <div>
@@ -179,6 +175,24 @@
           </div>
         </div>
         <div class="chart-container" id="chart-sankey" style="min-height:450px"></div>
+      </div>
+
+      <!-- Panel 7: Country Time Series -->
+      <div class="panel full-width">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Country Trends Over Time</div>
+            <div class="panel-subtitle" id="country-ts-subtitle">Select a country to see its trade history</div>
+          </div>
+          <div class="panel-controls">
+            <select id="country-select"></select>
+            <select id="country-flow-select">
+              <option value="Import">Imports</option>
+              <option value="Export">Exports</option>
+            </select>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-country-ts"></div>
       </div>
 
     </div>

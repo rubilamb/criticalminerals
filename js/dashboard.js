@@ -384,9 +384,9 @@
 
   function getTPFilters() {
     return {
-      mineral: document.getElementById('tp-mineral-select').value,
-      year: parseInt(document.getElementById('tp-year-select').value, 10),
-      flow: document.getElementById('tp-flow-select').value
+      mineral: document.getElementById('filter-mineral').value,
+      year: parseInt(document.getElementById('filter-year').value, 10),
+      flow: document.getElementById('filter-flow').value
     };
   }
 
@@ -662,24 +662,6 @@
     });
     panelMineral.value = selMineral.value;
 
-    var tpMineral = document.getElementById('tp-mineral-select');
-    minerals.forEach(function (m) {
-      var opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = m;
-      tpMineral.appendChild(opt);
-    });
-    tpMineral.value = 'Lithium';
-
-    var tpYear = document.getElementById('tp-year-select');
-    fullYears.forEach(function (y) {
-      var opt = document.createElement('option');
-      opt.value = y;
-      opt.textContent = y;
-      tpYear.appendChild(opt);
-    });
-    tpYear.value = fullYears[fullYears.length - 1];
-
     populateCountrySelect();
   }
 
@@ -703,29 +685,23 @@
     var selYear = document.getElementById('filter-year');
     var selFlow = document.getElementById('filter-flow');
 
+    function renderAll() {
+      renderTradeSection();
+      renderTradingPartners();
+    }
+
     selMineral.addEventListener('change', function () {
       panelMineral.value = selMineral.value;
-      renderKPIs();
-      renderMineralExplorer();
+      renderAll();
     });
 
     panelMineral.addEventListener('change', function () {
       selMineral.value = panelMineral.value;
-      renderKPIs();
-      renderMineralExplorer();
+      renderAll();
     });
 
-    selYear.addEventListener('change', function () {
-      renderKPIs();
-      renderTopMinerals();
-    });
-
-    selFlow.addEventListener('change', renderTradeSection);
-
-    // Trading partners
-    document.getElementById('tp-mineral-select').addEventListener('change', renderTradingPartners);
-    document.getElementById('tp-year-select').addEventListener('change', renderTradingPartners);
-    document.getElementById('tp-flow-select').addEventListener('change', renderTradingPartners);
+    selYear.addEventListener('change', renderAll);
+    selFlow.addEventListener('change', renderAll);
 
     document.getElementById('country-select').addEventListener('change', renderCountryTimeSeries);
     document.getElementById('country-flow-select').addEventListener('change', function () {

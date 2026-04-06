@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Critical Minerals Trade Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
+      <h1>Critical <span>Minerals</span> Trade Dashboard</h1>
+      <div class="header-meta" id="data-period">Loading data...</div>
+    </div>
+  </header>
+
+  <!-- Tabs (extensible for future datasets) -->
+  <nav class="tab-bar">
+    <button class="tab active" data-tab="trade">Trade Data</button>
+    <!-- Future tabs: <button class="tab" data-tab="production">Production</button> -->
+  </nav>
+
+  <!-- Loading State -->
+  <div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+    Loading dashboard data...
+  </div>
+
+  <!-- Main App (hidden until data loads) -->
+  <div id="app" style="display:none">
+
+    <!-- Filters -->
+    <div class="filters">
+      <div class="filter-group">
+        <label>Mineral</label>
+        <select id="filter-mineral"></select>
+      </div>
+      <div class="filter-group">
+        <label>Year</label>
+        <select id="filter-year"></select>
+      </div>
+      <div class="filter-group">
+        <label>Flow</label>
+        <select id="filter-flow">
+          <option value="Import">Imports</option>
+          <option value="Export">Exports</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-row">
+      <div class="kpi-card" id="kpi-imports">
+        <div class="kpi-label">Total Imports</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-change"></div>
+      </div>
+      <div class="kpi-card" id="kpi-exports">
+        <div class="kpi-label">Total Exports</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-change"></div>
+      </div>
+      <div class="kpi-card" id="kpi-deficit">
+        <div class="kpi-label">Trade Deficit</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-change"></div>
+      </div>
+      <div class="kpi-card" id="kpi-minerals">
+        <div class="kpi-label">Minerals Tracked</div>
+        <div class="kpi-value">—</div>
+        <div class="kpi-change"></div>
+      </div>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard">
+
+      <!-- Panel 1: Trade Overview -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Global Trade Overview</div>
+            <div class="panel-subtitle">Total import vs export value across all minerals</div>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-overview"></div>
+      </div>
+
+      <!-- Panel 2: Mineral Explorer -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Mineral Explorer</div>
+            <div class="panel-subtitle">Value and weight trends for selected mineral</div>
+          </div>
+          <div class="panel-controls">
+            <select id="panel-mineral-select"></select>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-mineral"></div>
+      </div>
+
+      <!-- Panel 3: Top Minerals -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Top Minerals by Value</div>
+            <div class="panel-subtitle">Ranked for selected year and flow direction</div>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-top"></div>
+      </div>
+
+      <!-- Panel 4: Trade Balance Heatmap -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Trade Balance Heatmap</div>
+            <div class="panel-subtitle">Green = surplus, Red = deficit (exports minus imports)</div>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-heatmap" style="min-height:500px"></div>
+      </div>
+
+    </div>
+
+    <!-- Renewable Energy Minerals — Trading Partners Section -->
+    <div class="section-divider">
+      <div class="section-header">
+        <h2 class="section-title">Renewable Energy Minerals — Trading Partners</h2>
+        <p class="section-subtitle">Bilateral trade flows for key minerals powering the energy transition</p>
+      </div>
+      <div class="filters" style="margin-top:0.75rem; padding:0;">
+        <div class="filter-group">
+          <label>Mineral</label>
+          <select id="re-mineral-select"></select>
+        </div>
+        <div class="filter-group">
+          <label>Year</label>
+          <select id="re-year-select"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard">
+
+      <!-- Panel 5: Top Exporters -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Top Exporting Countries</div>
+            <div class="panel-subtitle">Largest source countries by export value</div>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-top-exporters"></div>
+      </div>
+
+      <!-- Panel 6: Top Importers -->
+      <div class="panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Top Importing Countries</div>
+            <div class="panel-subtitle">Largest destination countries by import value</div>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-top-importers"></div>
+      </div>
+
+      <!-- Panel 7: Sankey Trade Flows -->
+      <div class="panel full-width">
+        <div class="panel-header">
+          <div>
+            <div class="panel-title">Bilateral Trade Flows</div>
+            <div class="panel-subtitle">Top exporter → importer corridors (blue = exporter, red = importer)</div>
+          </div>
+        </div>
+        <div class="chart-container" id="chart-sankey" style="min-height:450px"></div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Libraries (CDN) -->
+  <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Dashboard Logic -->
+  <script src="js/dashboard.js"></script>
+
+</body>
+</html>

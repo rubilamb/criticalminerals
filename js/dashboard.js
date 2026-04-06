@@ -46,12 +46,12 @@
     return '$' + Math.round(val).toLocaleString();
   }
 
-  function formatWeight(val) {
-    if (val >= 1e12) return (val / 1e12).toFixed(1) + 'T kg';
-    if (val >= 1e9) return (val / 1e9).toFixed(1) + 'B kg';
-    if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M kg';
-    if (val >= 1e3) return (val / 1e3).toFixed(1) + 'K kg';
-    return val.toFixed(0) + ' kg';
+  function formatVolume(val) {
+    if (val >= 1e12) return (val / 1e12).toFixed(1) + 'T';
+    if (val >= 1e9) return (val / 1e9).toFixed(1) + 'B';
+    if (val >= 1e6) return (val / 1e6).toFixed(1) + 'M';
+    if (val >= 1e3) return (val / 1e3).toFixed(1) + 'K';
+    return val.toFixed(0);
   }
 
   function pctChange(current, previous) {
@@ -151,18 +151,13 @@
     var prevData = rawData.filter(function (d) { return d.year === prev && d.flow === flow; });
 
     var totalValue = yrData.reduce(function (s, d) { return s + d.value; }, 0);
-    var totalWeight = yrData.reduce(function (s, d) { return s + d.weight; }, 0);
     var prevValue = prevData.reduce(function (s, d) { return s + d.value; }, 0);
-    var prevWeight = prevData.reduce(function (s, d) { return s + d.weight; }, 0);
 
     var valChange = pctChange(totalValue, prevValue);
-    var wtChange = pctChange(totalWeight, prevWeight);
 
     var label = flow === 'Import' ? 'Total Import Value' : 'Total Export Value';
-    var wtLabel = flow === 'Import' ? 'Total Import Weight' : 'Total Export Weight';
 
     setKPI('kpi-total', label, formatUSD(totalValue), valChange);
-    setKPI('kpi-weight', wtLabel, formatWeight(totalWeight), wtChange);
   }
 
   function setKPI(id, label, value, change) {
@@ -180,39 +175,66 @@
     }
   }
 
-  /* ---------- Chart 1: Trade Overview (line) ---------- */
+  /* ---------- Chart 1: Trade Overview — selected mineral vs others ---------- */
   function renderTradeOverview() {
     var flow = document.getElementById('filter-flow').value;
+    var mineral = document.getElementById('filter-mineral').value;
     var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
 
-    var valueByYear = {};
-    fullYears.forEach(function (y) { valueByYear[y] = 0; });
+    var selectedByYear = {};
+    var othersByYear = {};
+    fullYears.forEach(function (y) { selectedByYear[y] = 0; othersByYear[y] = 0; });
 
     rawData.forEach(function (d) {
       if (fullYears.indexOf(d.year) === -1) return;
       if (d.flow !== flow) return;
-      valueByYear[d.year] += d.value;
+      if (d.mineral === mineral) {
+        selectedByYear[d.year] += d.value;
+      } else {
+        othersByYear[d.year] += d.value;
+      }
     });
 
-    var traces = [{
-      x: fullYears,
-      y: fullYears.map(function (y) { return valueByYear[y]; }),
-      name: flowLabel,
-      type: 'scatter',
-      mode: 'lines+markers',
-      line: { color: flow === 'Import' ? '#2563eb' : '#16a34a', width: 2.5 },
-      marker: { size: 5 },
-      fill: 'tozeroy',
-      fillcolor: flow === 'Import' ? 'rgba(37,99,235,0.1)' : 'rgba(22,163,74,0.1)',
-      hovertemplate: flowLabel + ': %{y:$,.0f}<extra></extra>'
-    }];
+    // Compute share %
+    var shareText = fullYears.map(function (y) {
+      var total = selectedByYear[y] + othersByYear[y];
+      var pct = total > 0 ? (selectedByYear[y] / total * 100).toFixed(1) : '0.0';
+      return pct + '% share';
+    });
+
+    var traces = [
+      {
+        x: fullYears,
+        y: fullYears.map(function (y) { return selectedByYear[y]; }),
+        name: mineral,
+        type: 'scatter',
+        mode: 'lines',
+        stackgroup: 'one',
+        line: { color: '#2563eb', width: 0 },
+        fillcolor: 'rgba(37,99,235,0.6)',
+        text: shareText,
+        hovertemplate: mineral + ': %{y:$,.0f} (%{text})<extra></extra>'
+      },
+      {
+        x: fullYears,
+        y: fullYears.map(function (y) { return othersByYear[y]; }),
+        name: 'Other minerals',
+        type: 'scatter',
+        mode: 'lines',
+        stackgroup: 'one',
+        line: { color: '#e2e4ec', width: 0 },
+        fillcolor: 'rgba(203,213,225,0.5)',
+        hovertemplate: 'Others: %{y:$,.0f}<extra></extra>'
+      }
+    ];
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
-      yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, { title: 'Trade Value (USD)' })
+      yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, { title: 'Trade Value (USD)' }),
+      hovermode: 'x unified'
     });
 
     document.getElementById('overview-subtitle').textContent =
-      'Total ' + flowLabel.toLowerCase() + ' value across all minerals';
+      mineral + ' share of total ' + flowLabel.toLowerCase() + ' value';
 
     Plotly.newPlot('chart-overview', traces, layout, PLOTLY_CONFIG);
   }
@@ -235,34 +257,16 @@
         type: 'bar',
         marker: { color: flow === 'Import' ? '#2563eb' : '#16a34a', opacity: 0.7 },
         hovertemplate: flowLabel + ': %{y:$,.0f}<extra></extra>'
-      },
-      {
-        x: data.map(function (d) { return d.year; }),
-        y: data.map(function (d) { return d.weight; }),
-        name: flowLabel + ' Weight',
-        type: 'scatter',
-        mode: 'lines+markers',
-        yaxis: 'y2',
-        line: { color: '#f59e0b', width: 2, dash: 'dot' },
-        marker: { size: 4 },
-        hovertemplate: 'Weight: %{y:,.0f} kg<extra></extra>'
       }
     ];
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, { title: 'Value (USD)' }),
-      yaxis2: {
-        title: 'Weight (kg)',
-        overlaying: 'y',
-        side: 'right',
-        gridcolor: 'rgba(0,0,0,0)',
-        linecolor: '#e2e4ec'
-      },
       legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center' }
     });
 
     document.getElementById('mineral-subtitle').textContent =
-      flowLabel + ' value and weight trends for ' + mineral;
+      flowLabel + ' value trends for ' + mineral;
 
     Plotly.newPlot('chart-mineral', traces, layout, PLOTLY_CONFIG);
   }
@@ -494,29 +498,11 @@
         type: 'bar',
         marker: { color: countryFlow === 'Import' ? '#2563eb' : '#16a34a', opacity: 0.7 },
         hovertemplate: flowLabel + ': %{y:$,.0f}<extra></extra>'
-      },
-      {
-        x: data.map(function (d) { return d.year; }),
-        y: data.map(function (d) { return d.weight; }),
-        name: flowLabel + ' Weight',
-        type: 'scatter',
-        mode: 'lines+markers',
-        yaxis: 'y2',
-        line: { color: '#f59e0b', width: 2, dash: 'dot' },
-        marker: { size: 4 },
-        hovertemplate: 'Weight: %{y:,.0f} kg<extra></extra>'
       }
     ];
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, { title: 'Value (USD)' }),
-      yaxis2: {
-        title: 'Weight (kg)',
-        overlaying: 'y',
-        side: 'right',
-        gridcolor: 'rgba(0,0,0,0)',
-        linecolor: '#e2e4ec'
-      },
       legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center' }
     });
 
@@ -638,11 +624,13 @@
 
     selMineral.addEventListener('change', function () {
       panelMineral.value = selMineral.value;
+      renderTradeOverview();
       renderMineralExplorer();
     });
 
     panelMineral.addEventListener('change', function () {
       selMineral.value = panelMineral.value;
+      renderTradeOverview();
       renderMineralExplorer();
     });
 

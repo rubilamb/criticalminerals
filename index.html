@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Critical Minerals Trade Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -18,10 +16,9 @@
     </div>
   </header>
 
-  <!-- Tabs (extensible for future datasets) -->
+  <!-- Tabs -->
   <nav class="tab-bar">
     <button class="tab active" data-tab="trade">Trade Data</button>
-    <!-- Future tabs: <button class="tab" data-tab="production">Production</button> -->
   </nav>
 
   <!-- Loading State -->
@@ -30,7 +27,7 @@
     Loading dashboard data...
   </div>
 
-  <!-- Main App (hidden until data loads) -->
+  <!-- Main App -->
   <div id="app" style="display:none">
 
     <!-- Filters -->
@@ -56,22 +53,22 @@
     <div class="kpi-row">
       <div class="kpi-card" id="kpi-total">
         <div class="kpi-label">Total Trade Value</div>
-        <div class="kpi-value">—</div>
+        <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
       <div class="kpi-card" id="kpi-placeholder0">
-        <div class="kpi-label">—</div>
-        <div class="kpi-value">—</div>
+        <div class="kpi-label">&mdash;</div>
+        <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
       <div class="kpi-card" id="kpi-placeholder1">
-        <div class="kpi-label">—</div>
-        <div class="kpi-value">—</div>
+        <div class="kpi-label">&mdash;</div>
+        <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
       <div class="kpi-card" id="kpi-placeholder2">
-        <div class="kpi-label">—</div>
-        <div class="kpi-value">—</div>
+        <div class="kpi-label">&mdash;</div>
+        <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
     </div>
@@ -80,14 +77,14 @@
     <div class="dashboard">
 
       <!-- Panel 1: Trade Overview -->
-      <div class="panel">
+      <div class="panel full-width">
         <div class="panel-header">
           <div>
             <div class="panel-title">Trade Overview</div>
-            <div class="panel-subtitle" id="overview-subtitle">Total value across all minerals</div>
+            <div class="panel-subtitle" id="overview-subtitle">All minerals with Geopolitical Risk Index</div>
           </div>
         </div>
-        <div class="chart-container" id="chart-overview"></div>
+        <div class="chart-container" id="chart-overview" style="min-height:400px"></div>
       </div>
 
       <!-- Panel 2: Mineral Explorer -->
@@ -95,7 +92,7 @@
         <div class="panel-header">
           <div>
             <div class="panel-title">Mineral Explorer</div>
-            <div class="panel-subtitle" id="mineral-subtitle">Value trends for selected mineral</div>
+            <div class="panel-subtitle" id="mineral-subtitle">Value and quantity trends</div>
           </div>
           <div class="panel-controls">
             <select id="panel-mineral-select"></select>
@@ -104,12 +101,18 @@
         <div class="chart-container" id="chart-mineral"></div>
       </div>
 
-      <!-- Panel 3: Top Minerals -->
-      <div class="panel full-width">
+      <!-- Panel 3: Minerals by Value/Quantity -->
+      <div class="panel">
         <div class="panel-header">
           <div>
-            <div class="panel-title">Minerals by Value</div>
-            <div class="panel-subtitle" id="top-subtitle">Ranked for selected year and flow direction</div>
+            <div class="panel-title">Minerals Ranked</div>
+            <div class="panel-subtitle" id="top-subtitle">Ranked for selected year</div>
+          </div>
+          <div class="panel-controls">
+            <select id="metric-select">
+              <option value="value">Value (USD)</option>
+              <option value="quantity">Quantity (kg)</option>
+            </select>
           </div>
         </div>
         <div class="chart-container" id="chart-top"></div>
@@ -144,18 +147,7 @@
 
     <div class="dashboard">
 
-      <!-- Panel 4: Top Countries -->
-      <div class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-title" id="top-countries-title">Top Countries</div>
-            <div class="panel-subtitle" id="top-countries-subtitle">By trade value</div>
-          </div>
-        </div>
-        <div class="chart-container" id="chart-top-countries"></div>
-      </div>
-
-      <!-- Panel 5: Market Share -->
+      <!-- Panel 4: Market Share Pie -->
       <div class="panel">
         <div class="panel-header">
           <div>
@@ -166,23 +158,23 @@
         <div class="chart-container" id="chart-share"></div>
       </div>
 
-      <!-- Panel 6: Sankey Trade Flows -->
-      <div class="panel full-width">
+      <!-- Panel 5: Sankey Trade Flows -->
+      <div class="panel">
         <div class="panel-header">
           <div>
             <div class="panel-title">Bilateral Trade Flows</div>
-            <div class="panel-subtitle">Top exporter → importer corridors (blue = exporter, red = importer)</div>
+            <div class="panel-subtitle">Exporter → Importer (value, share %, quantity)</div>
           </div>
         </div>
-        <div class="chart-container" id="chart-sankey" style="min-height:450px"></div>
+        <div class="chart-container" id="chart-sankey" style="min-height:400px"></div>
       </div>
 
-      <!-- Panel 7: Country Time Series -->
+      <!-- Panel 6: Country Time Series -->
       <div class="panel full-width">
         <div class="panel-header">
           <div>
             <div class="panel-title">Country Trends Over Time</div>
-            <div class="panel-subtitle" id="country-ts-subtitle">Select a country to see its trade history</div>
+            <div class="panel-subtitle" id="country-ts-subtitle">Value, quantity, and Geopolitical Risk Index</div>
           </div>
           <div class="panel-controls">
             <select id="country-select"></select>
@@ -192,17 +184,16 @@
             </select>
           </div>
         </div>
-        <div class="chart-container" id="chart-country-ts"></div>
+        <div class="chart-container" id="chart-country-ts" style="min-height:380px"></div>
       </div>
 
     </div>
 
   </div>
 
-  <!-- Libraries (CDN) -->
+  <!-- Libraries -->
   <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-  <!-- Dashboard Logic -->
   <script src="js/dashboard.js"></script>
 
 </body>

@@ -40,34 +40,27 @@
         <label>Year</label>
         <select id="filter-year"></select>
       </div>
-      <div class="filter-group">
-        <label>Flow</label>
-        <select id="filter-flow">
-          <option value="Import">Imports</option>
-          <option value="Export">Exports</option>
-        </select>
-      </div>
     </div>
 
     <!-- KPI Cards -->
     <div class="kpi-row">
-      <div class="kpi-card" id="kpi-exp-val">
-        <div class="kpi-label">Total Export Value</div>
+      <div class="kpi-card" id="kpi-value">
+        <div class="kpi-label">Total Value Traded</div>
         <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
-      <div class="kpi-card" id="kpi-imp-val">
-        <div class="kpi-label">Total Import Value</div>
+      <div class="kpi-card" id="kpi-quantity">
+        <div class="kpi-label">Total Quantity Traded</div>
         <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
-      <div class="kpi-card" id="kpi-exp-qty">
-        <div class="kpi-label">Total Export Quantity</div>
+      <div class="kpi-card" id="kpi-placeholder1">
+        <div class="kpi-label">&mdash;</div>
         <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
-      <div class="kpi-card" id="kpi-imp-qty">
-        <div class="kpi-label">Total Import Quantity</div>
+      <div class="kpi-card" id="kpi-placeholder2">
+        <div class="kpi-label">&mdash;</div>
         <div class="kpi-value">&mdash;</div>
         <div class="kpi-change"></div>
       </div>
@@ -130,7 +123,16 @@
     <div class="section-divider">
       <div class="section-header">
         <h2 class="section-title">Trading Partners</h2>
-        <p class="section-subtitle">Bilateral trade flows and market concentration</p>
+        <p class="section-subtitle">Bilateral trade flows and market concentration (CIF import-reported)</p>
+      </div>
+      <div class="filters" style="margin-top:0.75rem; padding:0;">
+        <div class="filter-group">
+          <label>View</label>
+          <select id="filter-flow">
+            <option value="Import">Importing Countries</option>
+            <option value="Export">Exporting Countries</option>
+          </select>
+        </div>
       </div>
     </div>
 

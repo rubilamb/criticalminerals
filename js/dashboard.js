@@ -104,7 +104,6 @@
         return {
           mineral: r.mineral,
           year: parseInt(r.year, 10),
-          flow: r.flow,
           reporters: parseInt(r.n_reporters, 10),
           value: parseFloat(r.total_value_usd),
           weight: parseFloat(r.total_weight_kg)
@@ -168,31 +167,16 @@
     var mineral = document.getElementById('filter-mineral').value;
     var prev = yr - 1;
 
-    function getVal(y, fl) {
-      return rawData.filter(function (d) {
-        return d.year === y && d.flow === fl && d.mineral === mineral;
-      }).reduce(function (s, d) { return s + d.value; }, 0);
-    }
-    function getQty(y, fl) {
-      return rawData.filter(function (d) {
-        return d.year === y && d.flow === fl && d.mineral === mineral;
-      }).reduce(function (s, d) { return s + d.weight; }, 0);
-    }
+    var yrData = rawData.filter(function (d) { return d.year === yr && d.mineral === mineral; });
+    var prevData = rawData.filter(function (d) { return d.year === prev && d.mineral === mineral; });
 
-    var expVal = getVal(yr, 'Export');
-    var impVal = getVal(yr, 'Import');
-    var expQty = getQty(yr, 'Export');
-    var impQty = getQty(yr, 'Import');
+    var totalVal = yrData.reduce(function (s, d) { return s + d.value; }, 0);
+    var totalQty = yrData.reduce(function (s, d) { return s + d.weight; }, 0);
+    var prevVal = prevData.reduce(function (s, d) { return s + d.value; }, 0);
+    var prevQty = prevData.reduce(function (s, d) { return s + d.weight; }, 0);
 
-    var prevExpVal = getVal(prev, 'Export');
-    var prevImpVal = getVal(prev, 'Import');
-    var prevExpQty = getQty(prev, 'Export');
-    var prevImpQty = getQty(prev, 'Import');
-
-    setKPI('kpi-exp-val', 'Total ' + mineral + ' Export Value', formatUSD(expVal), pctChange(expVal, prevExpVal));
-    setKPI('kpi-imp-val', 'Total ' + mineral + ' Import Value', formatUSD(impVal), pctChange(impVal, prevImpVal));
-    setKPI('kpi-exp-qty', 'Total ' + mineral + ' Export Quantity', formatQty(expQty), pctChange(expQty, prevExpQty));
-    setKPI('kpi-imp-qty', 'Total ' + mineral + ' Import Quantity', formatQty(impQty), pctChange(impQty, prevImpQty));
+    setKPI('kpi-value', 'Total ' + mineral + ' Value Traded', formatUSD(totalVal), pctChange(totalVal, prevVal));
+    setKPI('kpi-quantity', 'Total ' + mineral + ' Quantity Traded', formatQty(totalQty), pctChange(totalQty, prevQty));
   }
 
   function setKPI(id, label, value, change) {
@@ -212,8 +196,6 @@
 
   /* ---------- Chart 1: Trade Overview — stacked area ---------- */
   function renderTradeOverview() {
-    var flow = document.getElementById('filter-flow').value;
-    var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
     var metric = document.getElementById('overview-metric').value;
     var isValue = metric === 'value';
     var field = isValue ? 'value' : 'weight';
@@ -225,7 +207,7 @@
     });
 
     rawData.forEach(function (d) {
-      if (fullYears.indexOf(d.year) === -1 || d.flow !== flow) return;
+      if (fullYears.indexOf(d.year) === -1) return;
       if (byMineralYear[d.mineral]) {
         byMineralYear[d.mineral][d.year] += d[field];
       }
@@ -265,7 +247,7 @@
     });
 
     document.getElementById('overview-subtitle').textContent =
-      flowLabel + ' ' + (isValue ? 'value' : 'quantity') + ' by mineral (stacked area)';
+      'Total ' + (isValue ? 'value' : 'quantity') + ' traded by mineral (CIF import-reported)';
 
     Plotly.newPlot('chart-overview', traces, layout, PLOTLY_CONFIG);
   }
@@ -273,11 +255,9 @@
   /* ---------- Chart 2: Mineral Explorer — value + quantity lines ---------- */
   function renderMineralExplorer() {
     var mineral = document.getElementById('panel-mineral-select').value;
-    var flow = document.getElementById('filter-flow').value;
-    var flowLabel = flow === 'Import' ? 'Import' : 'Export';
 
     var data = rawData.filter(function (d) {
-      return d.mineral === mineral && d.flow === flow && fullYears.indexOf(d.year) !== -1;
+      return d.mineral === mineral && fullYears.indexOf(d.year) !== -1;
     }).sort(function (a, b) { return a.year - b.year; });
 
     var traces = [
@@ -320,7 +300,7 @@
     });
 
     document.getElementById('mineral-subtitle').textContent =
-      mineral + ' — ' + flowLabel.toLowerCase() + ' value and quantity';
+      mineral + ' — value and quantity traded';
 
     Plotly.newPlot('chart-mineral', traces, layout, PLOTLY_CONFIG);
   }
@@ -328,12 +308,10 @@
   /* ---------- Chart 3: Minerals Ranked — horizontal bar ---------- */
   function renderTopMinerals() {
     var year = parseInt(document.getElementById('filter-year').value, 10);
-    var flow = document.getElementById('filter-flow').value;
     var metric = document.getElementById('ranked-metric').value;
-    var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
     var isValue = metric === 'value';
 
-    var data = rawData.filter(function (d) { return d.year === year && d.flow === flow && d.value > 0; });
+    var data = rawData.filter(function (d) { return d.year === year && d.value > 0; });
     data.sort(function (a, b) { return isValue ? a.value - b.value : a.weight - b.weight; });
 
     var traces = [{
@@ -360,7 +338,7 @@
     });
 
     document.getElementById('top-subtitle').textContent =
-      flowLabel + ' ranked by ' + (isValue ? 'value' : 'quantity') + ' (' + year + ')';
+      'Ranked by ' + (isValue ? 'value' : 'quantity') + ' traded (' + year + ')';
 
     Plotly.newPlot('chart-top', traces, layout, PLOTLY_CONFIG);
   }
@@ -663,6 +641,11 @@
     renderTopMinerals();
   }
 
+  function renderAll() {
+    renderTradeSection();
+    renderTradingPartners();
+  }
+
   function renderTradingPartners() {
     renderMarketShare();
     renderSankey();
@@ -676,11 +659,6 @@
     var selYear = document.getElementById('filter-year');
     var selFlow = document.getElementById('filter-flow');
 
-    function renderAll() {
-      renderTradeSection();
-      renderTradingPartners();
-    }
-
     selMineral.addEventListener('change', function () {
       panelMineral.value = selMineral.value;
       renderAll();
@@ -692,7 +670,7 @@
     });
 
     selYear.addEventListener('change', renderAll);
-    selFlow.addEventListener('change', renderAll);
+    selFlow.addEventListener('change', renderTradingPartners);
 
     document.getElementById('overview-metric').addEventListener('change', renderTradeOverview);
     document.getElementById('ranked-metric').addEventListener('change', renderTopMinerals);

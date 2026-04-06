@@ -7,9 +7,7 @@
   const BILATERAL_PATH = 'data/comtrade_crm_bilateral.csv';
   const FLOWS_PATH = 'data/comtrade_crm_flows.csv';
   const COUNTRY_TS_PATH = 'data/comtrade_crm_country_ts.csv';
-  const GPR_PATH = 'data/gpr_annual.csv';
 
-  /* Color palette inspired by academic chart style */
   const MINERAL_COLORS = {
     'Lithium':       '#2ca02c',
     'Cobalt':        '#e67e22',
@@ -20,8 +18,6 @@
     'Manganese':     '#8c564b'
   };
   const MINERAL_ORDER = ['Lithium', 'Cobalt', 'Copper', 'Nickel', 'Rare earths', 'Silicon metal', 'Manganese'];
-  const GPR_COLOR = 'rgba(220,80,80,0.35)';
-  const GPR_LINE_COLOR = '#d62728';
 
   const PIE_COLORS = [
     '#1f77b4', '#d62728', '#2ca02c', '#e67e22', '#9467bd',
@@ -51,7 +47,6 @@
   var bilateralData = [];
   var flowsData = [];
   var countryTsData = [];
-  var gprData = [];
   var minerals = [];
   var years = [];
   var fullYears = [];
@@ -77,24 +72,11 @@
     return ((current - previous) / previous) * 100;
   }
 
-  function getGPRTrace(yrs, yaxisName) {
-    var gprByYear = {};
-    gprData.forEach(function (d) { gprByYear[d.year] = d.gpr; });
-
-    var filteredYrs = yrs.filter(function (y) { return gprByYear[y] !== undefined; });
-    return {
-      x: filteredYrs,
-      y: filteredYrs.map(function (y) { return gprByYear[y]; }),
-      name: 'GPR Index',
-      type: 'scatter',
-      mode: 'lines',
-      fill: 'tozeroy',
-      fillcolor: GPR_COLOR,
-      line: { color: GPR_LINE_COLOR, width: 1, dash: 'dot' },
-      yaxis: yaxisName || 'y3',
-      hovertemplate: 'GPR: %{y:.1f}<extra></extra>',
-      showlegend: true
-    };
+  function hexToRGBA(hex, alpha) {
+    var r = parseInt(hex.slice(1, 3), 16);
+    var g = parseInt(hex.slice(3, 5), 16);
+    var b = parseInt(hex.slice(5, 7), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
   }
 
   /* ---------- Data Loading ---------- */
@@ -116,8 +98,7 @@
       parseCSV(DATA_PATH),
       parseCSV(BILATERAL_PATH),
       parseCSV(FLOWS_PATH),
-      parseCSV(COUNTRY_TS_PATH),
-      parseCSV(GPR_PATH)
+      parseCSV(COUNTRY_TS_PATH)
     ]).then(function (results) {
       rawData = results[0].map(function (r) {
         return {
@@ -128,7 +109,7 @@
           value: parseFloat(r.total_value_usd),
           weight: parseFloat(r.total_weight_kg)
         };
-      }).filter(function (d) { return !isNaN(d.year) && !isNaN(d.value); });
+      }).filter(function (d) { return !isNaN(d.year) && d.value > 0; });
 
       bilateralData = results[1].map(function (r) {
         return {
@@ -140,7 +121,7 @@
           value: parseFloat(r.trade_value_usd),
           weight: parseFloat(r.net_weight_kg)
         };
-      }).filter(function (d) { return !isNaN(d.year) && !isNaN(d.value); });
+      }).filter(function (d) { return !isNaN(d.year) && d.value > 0; });
 
       flowsData = results[2].map(function (r) {
         return {
@@ -153,7 +134,7 @@
           value: parseFloat(r.trade_value_usd),
           weight: parseFloat(r.net_weight_kg)
         };
-      }).filter(function (d) { return !isNaN(d.year) && !isNaN(d.value); });
+      }).filter(function (d) { return !isNaN(d.year) && d.value > 0; });
 
       countryTsData = results[3].map(function (r) {
         return {
@@ -165,11 +146,7 @@
           value: parseFloat(r.trade_value_usd),
           weight: parseFloat(r.net_weight_kg)
         };
-      }).filter(function (d) { return !isNaN(d.year) && !isNaN(d.value); });
-
-      gprData = results[4].map(function (r) {
-        return { year: parseInt(r.year, 10), gpr: parseFloat(r.gpr) };
-      }).filter(function (d) { return !isNaN(d.year) && !isNaN(d.gpr); });
+      }).filter(function (d) { return !isNaN(d.year) && d.value > 0; });
 
       minerals = MINERAL_ORDER.filter(function (m) {
         return rawData.some(function (d) { return d.mineral === m; });
@@ -188,18 +165,34 @@
   /* ---------- KPI Cards ---------- */
   function renderKPIs() {
     var yr = parseInt(document.getElementById('filter-year').value, 10);
-    var flow = document.getElementById('filter-flow').value;
+    var mineral = document.getElementById('filter-mineral').value;
     var prev = yr - 1;
 
-    var yrData = rawData.filter(function (d) { return d.year === yr && d.flow === flow; });
-    var prevData = rawData.filter(function (d) { return d.year === prev && d.flow === flow; });
+    function getVal(y, fl) {
+      return rawData.filter(function (d) {
+        return d.year === y && d.flow === fl && d.mineral === mineral;
+      }).reduce(function (s, d) { return s + d.value; }, 0);
+    }
+    function getQty(y, fl) {
+      return rawData.filter(function (d) {
+        return d.year === y && d.flow === fl && d.mineral === mineral;
+      }).reduce(function (s, d) { return s + d.weight; }, 0);
+    }
 
-    var totalValue = yrData.reduce(function (s, d) { return s + d.value; }, 0);
-    var prevValue = prevData.reduce(function (s, d) { return s + d.value; }, 0);
-    var valChange = pctChange(totalValue, prevValue);
+    var expVal = getVal(yr, 'Export');
+    var impVal = getVal(yr, 'Import');
+    var expQty = getQty(yr, 'Export');
+    var impQty = getQty(yr, 'Import');
 
-    var label = flow === 'Import' ? 'Total Import Value' : 'Total Export Value';
-    setKPI('kpi-total', label, formatUSD(totalValue), valChange);
+    var prevExpVal = getVal(prev, 'Export');
+    var prevImpVal = getVal(prev, 'Import');
+    var prevExpQty = getQty(prev, 'Export');
+    var prevImpQty = getQty(prev, 'Import');
+
+    setKPI('kpi-exp-val', 'Total ' + mineral + ' Export Value', formatUSD(expVal), pctChange(expVal, prevExpVal));
+    setKPI('kpi-imp-val', 'Total ' + mineral + ' Import Value', formatUSD(impVal), pctChange(impVal, prevImpVal));
+    setKPI('kpi-exp-qty', 'Total ' + mineral + ' Export Quantity', formatQty(expQty), pctChange(expQty, prevExpQty));
+    setKPI('kpi-imp-qty', 'Total ' + mineral + ' Import Quantity', formatQty(impQty), pctChange(impQty, prevImpQty));
   }
 
   function setKPI(id, label, value, change) {
@@ -217,15 +210,12 @@
     }
   }
 
-  /* ---------- Chart 1: Trade Overview — all minerals + GPR ---------- */
+  /* ---------- Chart 1: Trade Overview — stacked area ---------- */
   function renderTradeOverview() {
     var flow = document.getElementById('filter-flow').value;
     var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
 
-    // Compute per-mineral and total by year
     var byMineralYear = {};
-    var totalByYear = {};
-    fullYears.forEach(function (y) { totalByYear[y] = 0; });
     minerals.forEach(function (m) {
       byMineralYear[m] = {};
       fullYears.forEach(function (y) { byMineralYear[m][y] = 0; });
@@ -235,77 +225,40 @@
       if (fullYears.indexOf(d.year) === -1 || d.flow !== flow) return;
       if (byMineralYear[d.mineral]) {
         byMineralYear[d.mineral][d.year] += d.value;
-        totalByYear[d.year] += d.value;
       }
     });
 
-    // Line trace per mineral (left axis = value)
+    // Stacked area traces — low opacity, grouped
     var traces = minerals.map(function (m) {
       return {
         x: fullYears,
         y: fullYears.map(function (y) { return byMineralYear[m][y]; }),
         name: m,
         type: 'scatter',
-        mode: 'lines+markers',
-        line: { color: MINERAL_COLORS[m], width: 2 },
-        marker: { size: 4 },
-        yaxis: 'y',
+        mode: 'none',
+        stackgroup: 'one',
+        fillcolor: hexToRGBA(MINERAL_COLORS[m], 0.3),
+        line: { width: 0, color: MINERAL_COLORS[m] },
+        hoveron: 'points+fills',
         hovertemplate: m + ': %{y:$,.0f}<extra></extra>'
       };
     });
 
-    // Share traces per mineral (right axis = %)
-    minerals.forEach(function (m) {
-      traces.push({
-        x: fullYears,
-        y: fullYears.map(function (y) {
-          return totalByYear[y] > 0 ? (byMineralYear[m][y] / totalByYear[y] * 100) : 0;
-        }),
-        name: m + ' share',
-        type: 'scatter',
-        mode: 'lines',
-        line: { color: MINERAL_COLORS[m], width: 1, dash: 'dash' },
-        yaxis: 'y2',
-        showlegend: false,
-        hovertemplate: m + ' share: %{y:.1f}%<extra></extra>'
-      });
-    });
-
-    // GPR overlay
-    traces.push(getGPRTrace(fullYears, 'y3'));
-
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {
-        title: { text: 'Trade Value (USD)', font: { size: 11 } },
-        side: 'left'
+        title: { text: 'Trade Value (USD)', font: { size: 11 } }
       }),
-      yaxis2: {
-        title: { text: 'Share (%)', font: { size: 11 } },
-        overlaying: 'y',
-        side: 'right',
-        gridcolor: 'rgba(0,0,0,0)',
-        linecolor: '#ccc',
-        rangemode: 'tozero'
-      },
-      yaxis3: {
-        overlaying: 'y',
-        side: 'right',
-        position: 1,
-        showgrid: false,
-        showticklabels: false,
-        rangemode: 'tozero',
-        visible: false
-      },
-      legend: { orientation: 'h', y: -0.28, x: 0.5, xanchor: 'center', font: { size: 10 } }
+      legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center', font: { size: 10 } },
+      hovermode: 'x unified'
     });
 
     document.getElementById('overview-subtitle').textContent =
-      'All minerals ' + flowLabel.toLowerCase() + ' value (solid) and share % (dashed) with Geopolitical Risk Index';
+      flowLabel + ' value by mineral (stacked area)';
 
     Plotly.newPlot('chart-overview', traces, layout, PLOTLY_CONFIG);
   }
 
-  /* ---------- Chart 2: Mineral Explorer — value + quantity ---------- */
+  /* ---------- Chart 2: Mineral Explorer — value + quantity lines ---------- */
   function renderMineralExplorer() {
     var mineral = document.getElementById('panel-mineral-select').value;
     var flow = document.getElementById('filter-flow').value;
@@ -360,42 +313,67 @@
     Plotly.newPlot('chart-mineral', traces, layout, PLOTLY_CONFIG);
   }
 
-  /* ---------- Chart 3: Minerals by Value or Quantity ---------- */
+  /* ---------- Chart 3: Minerals Ranked — bar (value) + dotted line (quantity) ---------- */
   function renderTopMinerals() {
     var year = parseInt(document.getElementById('filter-year').value, 10);
     var flow = document.getElementById('filter-flow').value;
-    var metric = document.getElementById('metric-select').value;
     var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
-    var isValue = metric === 'value';
 
-    var data = rawData.filter(function (d) { return d.year === year && d.flow === flow; });
-    data.sort(function (a, b) { return (isValue ? b.value - a.value : b.weight - a.weight); });
+    var data = rawData.filter(function (d) { return d.year === year && d.flow === flow && d.value > 0; });
+    data.sort(function (a, b) { return a.value - b.value; }); // ascending for horizontal bar
 
-    var traces = [{
-      y: data.map(function (d) { return d.mineral; }).reverse(),
-      x: data.map(function (d) { return isValue ? d.value : d.weight; }).reverse(),
-      type: 'bar',
-      orientation: 'h',
-      marker: {
-        color: data.map(function (d) { return MINERAL_COLORS[d.mineral] || '#999'; }).reverse()
+    var traces = [
+      {
+        y: data.map(function (d) { return d.mineral; }),
+        x: data.map(function (d) { return d.value; }),
+        name: 'Value (USD)',
+        type: 'bar',
+        orientation: 'h',
+        marker: {
+          color: data.map(function (d) { return MINERAL_COLORS[d.mineral] || '#999'; })
+        },
+        xaxis: 'x',
+        hovertemplate: '%{y}: %{x:$,.0f}<extra></extra>'
       },
-      hovertemplate: isValue
-        ? '%{y}: %{x:$,.0f}<extra></extra>'
-        : '%{y}: %{x:,.0f} kg<extra></extra>'
-    }];
+      {
+        y: data.map(function (d) { return d.mineral; }),
+        x: data.map(function (d) { return d.weight; }),
+        name: 'Quantity (kg)',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { width: 1.5, dash: 'dot', color: '#666' },
+        marker: {
+          size: 6,
+          color: data.map(function (d) { return MINERAL_COLORS[d.mineral] || '#999'; })
+        },
+        xaxis: 'x2',
+        hovertemplate: '%{y}: %{x:,.0f} kg<extra></extra>'
+      }
+    ];
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
-      margin: { l: 130, r: 30, t: 10, b: 40 },
-      xaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.xaxis, {
-        title: isValue ? 'Trade Value (USD)' : 'Quantity (kg)',
+      margin: { l: 130, r: 80, t: 10, b: 50 },
+      xaxis: {
+        title: { text: 'Value (USD)', font: { size: 11 } },
+        side: 'bottom',
+        gridcolor: '#e5e5e5',
+        linecolor: '#ccc',
         dtick: undefined
-      }),
+      },
+      xaxis2: {
+        title: { text: 'Quantity (kg)', font: { size: 11 } },
+        overlaying: 'x',
+        side: 'top',
+        gridcolor: 'rgba(0,0,0,0)',
+        linecolor: '#ccc'
+      },
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, { automargin: true }),
-      hovermode: 'closest'
+      hovermode: 'closest',
+      legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center', font: { size: 11 } }
     });
 
     document.getElementById('top-subtitle').textContent =
-      flowLabel + ' ranked by ' + (isValue ? 'value' : 'quantity') + ' (' + year + ')';
+      flowLabel + ' — value (bars) and quantity (dotted line) (' + year + ')';
 
     Plotly.newPlot('chart-top', traces, layout, PLOTLY_CONFIG);
   }
@@ -418,13 +396,12 @@
     var flowLabel = f.flow === 'Import' ? 'Import' : 'Export';
 
     var data = bilateralData.filter(function (d) {
-      return d.mineral === f.mineral && d.year === f.year && d.flow === f.flow;
+      return d.mineral === f.mineral && d.year === f.year && d.flow === f.flow && d.value > 0;
     });
     data.sort(function (a, b) { return b.value - a.value; });
 
     var total = data.reduce(function (s, d) { return s + d.value; }, 0);
 
-    // Top 8 + Others
     var top = data.slice(0, 8);
     var othersVal = data.slice(8).reduce(function (s, d) { return s + d.value; }, 0);
     var labels = top.map(function (d) { return d.country; });
@@ -466,12 +443,12 @@
     Plotly.newPlot('chart-share', traces, layout, PLOTLY_CONFIG);
   }
 
-  /* ---------- Chart 5: Sankey Trade Flows ---------- */
+  /* ---------- Chart 5: Sankey Trade Flows with per-country share ---------- */
   function renderSankey() {
     var f = getTPFilters();
 
     var data = flowsData.filter(function (d) {
-      return d.mineral === f.mineral && d.year === f.year;
+      return d.mineral === f.mineral && d.year === f.year && d.value > 0;
     });
     data.sort(function (a, b) { return b.value - a.value; });
     var top = data.slice(0, 25);
@@ -483,8 +460,14 @@
       return;
     }
 
-    // Compute total for share %
-    var totalVal = top.reduce(function (s, d) { return s + d.value; }, 0);
+    // Compute per-country totals for share %
+    var exporterTotals = {};
+    var importerTotals = {};
+    top.forEach(function (d) {
+      exporterTotals[d.exporter] = (exporterTotals[d.exporter] || 0) + d.value;
+      importerTotals[d.importer] = (importerTotals[d.importer] || 0) + d.value;
+    });
+    var grandTotal = top.reduce(function (s, d) { return s + d.value; }, 0);
 
     var nodeMap = {};
     var nodes = [];
@@ -492,7 +475,9 @@
       var key = side + ':' + name;
       if (nodeMap[key] === undefined) {
         nodeMap[key] = nodes.length;
-        nodes.push({ label: name, side: side });
+        var countryTotal = side === 'exporter' ? exporterTotals[name] : importerTotals[name];
+        var share = grandTotal > 0 ? (countryTotal / grandTotal * 100).toFixed(1) : '0.0';
+        nodes.push({ label: name, side: side, share: share, total: countryTotal });
       }
       return nodeMap[key];
     }
@@ -508,21 +493,25 @@
       sources.push(srcIdx);
       targets.push(tgtIdx);
       values.push(d.value);
-      var share = totalVal > 0 ? (d.value / totalVal * 100).toFixed(1) : '0.0';
       var qty = formatQty(d.weight);
-      linkLabels.push(formatUSD(d.value) + ' | ' + share + '% | ' + qty);
+      var flowShare = grandTotal > 0 ? (d.value / grandTotal * 100).toFixed(1) : '0.0';
+      linkLabels.push(formatUSD(d.value) + ' | ' + flowShare + '% | ' + qty);
     });
 
     var linkRGBA = top.map(function (_, i) {
-      var hex = PIE_COLORS[i % PIE_COLORS.length];
-      var r = parseInt(hex.slice(1, 3), 16);
-      var g = parseInt(hex.slice(3, 5), 16);
-      var b = parseInt(hex.slice(5, 7), 16);
-      return 'rgba(' + r + ',' + g + ',' + b + ',0.4)';
+      return hexToRGBA(PIE_COLORS[i % PIE_COLORS.length], 0.4);
     });
 
     var nodeColors = nodes.map(function (n) {
       return n.side === 'exporter' ? '#1f77b4' : '#d62728';
+    });
+
+    var nodeLabels = nodes.map(function (n) {
+      return n.label + ' (' + n.share + '%)';
+    });
+
+    var nodeHover = nodes.map(function (n) {
+      return n.label + ': ' + formatUSD(n.total) + ' (' + n.share + '% of total)';
     });
 
     var traces = [{
@@ -532,9 +521,10 @@
         pad: 12,
         thickness: 18,
         line: { color: '#ddd', width: 0.5 },
-        label: nodes.map(function (n) { return n.label; }),
+        label: nodeLabels,
         color: nodeColors,
-        hovertemplate: '%{label}: %{value:$,.0f}<extra></extra>'
+        customdata: nodeHover,
+        hovertemplate: '%{customdata}<extra></extra>'
       },
       link: {
         source: sources,
@@ -555,7 +545,7 @@
     Plotly.newPlot('chart-sankey', traces, layout, PLOTLY_CONFIG);
   }
 
-  /* ---------- Chart 6: Country Time Series + GPR ---------- */
+  /* ---------- Chart 6: Country Time Series — line, value + quantity ---------- */
   function renderCountryTimeSeries() {
     var f = getTPFilters();
     var country = document.getElementById('country-select').value;
@@ -563,14 +553,12 @@
     var flowLabel = countryFlow === 'Import' ? 'Imports' : 'Exports';
 
     var data = countryTsData.filter(function (d) {
-      return d.mineral === f.mineral && d.country === country && d.flow === countryFlow;
+      return d.mineral === f.mineral && d.country === country && d.flow === countryFlow && d.value > 0;
     }).sort(function (a, b) { return a.year - b.year; });
-
-    var dataYears = data.map(function (d) { return d.year; });
 
     var traces = [
       {
-        x: dataYears,
+        x: data.map(function (d) { return d.year; }),
         y: data.map(function (d) { return d.value; }),
         name: 'Value (USD)',
         type: 'scatter',
@@ -581,7 +569,7 @@
         hovertemplate: 'Value: %{y:$,.0f}<extra></extra>'
       },
       {
-        x: dataYears,
+        x: data.map(function (d) { return d.year; }),
         y: data.map(function (d) { return d.weight; }),
         name: 'Quantity (kg)',
         type: 'scatter',
@@ -592,9 +580,6 @@
         hovertemplate: 'Quantity: %{y:,.0f} kg<extra></extra>'
       }
     ];
-
-    // GPR overlay
-    traces.push(getGPRTrace(dataYears, 'y3'));
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {
@@ -607,20 +592,11 @@
         gridcolor: 'rgba(0,0,0,0)',
         linecolor: '#ccc'
       },
-      yaxis3: {
-        overlaying: 'y',
-        side: 'right',
-        position: 1,
-        showgrid: false,
-        showticklabels: false,
-        rangemode: 'tozero',
-        visible: false
-      },
       legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center' }
     });
 
     document.getElementById('country-ts-subtitle').textContent =
-      country + ' — ' + f.mineral + ' ' + flowLabel.toLowerCase() + ' with GPR Index';
+      country + ' — ' + f.mineral + ' ' + flowLabel.toLowerCase() + ' (total per year)';
 
     Plotly.newPlot('chart-country-ts', traces, layout, PLOTLY_CONFIG);
   }
@@ -632,7 +608,7 @@
 
     var countries = {};
     countryTsData.forEach(function (d) {
-      if (d.mineral === f.mineral && d.flow === countryFlow) {
+      if (d.mineral === f.mineral && d.flow === countryFlow && d.value > 0) {
         if (!countries[d.country]) countries[d.country] = 0;
         countries[d.country] += d.value;
       }
@@ -726,15 +702,16 @@
     var panelMineral = document.getElementById('panel-mineral-select');
     var selYear = document.getElementById('filter-year');
     var selFlow = document.getElementById('filter-flow');
-    var metricSel = document.getElementById('metric-select');
 
     selMineral.addEventListener('change', function () {
       panelMineral.value = selMineral.value;
+      renderKPIs();
       renderMineralExplorer();
     });
 
     panelMineral.addEventListener('change', function () {
       selMineral.value = panelMineral.value;
+      renderKPIs();
       renderMineralExplorer();
     });
 
@@ -744,8 +721,6 @@
     });
 
     selFlow.addEventListener('change', renderTradeSection);
-
-    metricSel.addEventListener('change', renderTopMinerals);
 
     // Trading partners
     document.getElementById('tp-mineral-select').addEventListener('change', renderTradingPartners);
@@ -773,7 +748,7 @@
 
       document.getElementById('data-period').textContent =
         'Data: ' + years[0] + '\u2013' + years[years.length - 1] +
-        ' | ' + minerals.length + ' minerals | Source: UN Comtrade | GPR: Caldara & Iacoviello';
+        ' | ' + minerals.length + ' minerals | Source: UN Comtrade';
     }).catch(function (err) {
       document.getElementById('loading').innerHTML =
         '<p style="color:#d62728">Failed to load data. Check console.</p>';

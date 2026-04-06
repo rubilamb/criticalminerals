@@ -717,7 +717,7 @@
       renderTradingPartners();
 
       document.getElementById('data-period').textContent =
-        'Data: ' + years[0] + '\u2013' + years[years.length - 1] +
+        'Data: ' + fullYears[0] + '\u2013' + fullYears[fullYears.length - 1] +
         ' | ' + minerals.length + ' minerals | Source: UN Comtrade';
     }).catch(function (err) {
       document.getElementById('loading').innerHTML =

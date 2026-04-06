@@ -214,6 +214,9 @@
   function renderTradeOverview() {
     var flow = document.getElementById('filter-flow').value;
     var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
+    var metric = document.getElementById('overview-metric').value;
+    var isValue = metric === 'value';
+    var field = isValue ? 'value' : 'weight';
 
     var byMineralYear = {};
     minerals.forEach(function (m) {
@@ -224,12 +227,19 @@
     rawData.forEach(function (d) {
       if (fullYears.indexOf(d.year) === -1 || d.flow !== flow) return;
       if (byMineralYear[d.mineral]) {
-        byMineralYear[d.mineral][d.year] += d.value;
+        byMineralYear[d.mineral][d.year] += d[field];
       }
     });
 
-    // Stacked area traces — low opacity, grouped
-    var traces = minerals.map(function (m) {
+    // Sort minerals by total (largest first = bottom of stack)
+    var mineralTotals = minerals.map(function (m) {
+      var total = fullYears.reduce(function (s, y) { return s + byMineralYear[m][y]; }, 0);
+      return { mineral: m, total: total };
+    });
+    mineralTotals.sort(function (a, b) { return b.total - a.total; });
+
+    var traces = mineralTotals.map(function (item) {
+      var m = item.mineral;
       return {
         x: fullYears,
         y: fullYears.map(function (y) { return byMineralYear[m][y]; }),
@@ -240,20 +250,22 @@
         fillcolor: hexToRGBA(MINERAL_COLORS[m], 0.3),
         line: { width: 0, color: MINERAL_COLORS[m] },
         hoveron: 'points+fills',
-        hovertemplate: m + ': %{y:$,.0f}<extra></extra>'
+        hovertemplate: isValue
+          ? m + ': %{y:$,.0f}<extra></extra>'
+          : m + ': %{y:,.0f} kg<extra></extra>'
       };
     });
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {
-        title: { text: 'Trade Value (USD)', font: { size: 11 } }
+        title: { text: isValue ? 'Trade Value (USD)' : 'Quantity (kg)', font: { size: 11 } }
       }),
       legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center', font: { size: 10 } },
       hovermode: 'x unified'
     });
 
     document.getElementById('overview-subtitle').textContent =
-      flowLabel + ' value by mineral (stacked area)';
+      flowLabel + ' ' + (isValue ? 'value' : 'quantity') + ' by mineral (stacked area)';
 
     Plotly.newPlot('chart-overview', traces, layout, PLOTLY_CONFIG);
   }
@@ -313,67 +325,42 @@
     Plotly.newPlot('chart-mineral', traces, layout, PLOTLY_CONFIG);
   }
 
-  /* ---------- Chart 3: Minerals Ranked — bar (value) + dotted line (quantity) ---------- */
+  /* ---------- Chart 3: Minerals Ranked — horizontal bar ---------- */
   function renderTopMinerals() {
     var year = parseInt(document.getElementById('filter-year').value, 10);
     var flow = document.getElementById('filter-flow').value;
+    var metric = document.getElementById('ranked-metric').value;
     var flowLabel = flow === 'Import' ? 'Imports' : 'Exports';
+    var isValue = metric === 'value';
 
     var data = rawData.filter(function (d) { return d.year === year && d.flow === flow && d.value > 0; });
-    data.sort(function (a, b) { return a.value - b.value; }); // ascending for horizontal bar
+    data.sort(function (a, b) { return isValue ? a.value - b.value : a.weight - b.weight; });
 
-    var traces = [
-      {
-        y: data.map(function (d) { return d.mineral; }),
-        x: data.map(function (d) { return d.value; }),
-        name: 'Value (USD)',
-        type: 'bar',
-        orientation: 'h',
-        marker: {
-          color: data.map(function (d) { return MINERAL_COLORS[d.mineral] || '#999'; })
-        },
-        xaxis: 'x',
-        hovertemplate: '%{y}: %{x:$,.0f}<extra></extra>'
+    var traces = [{
+      y: data.map(function (d) { return d.mineral; }),
+      x: data.map(function (d) { return isValue ? d.value : d.weight; }),
+      type: 'bar',
+      orientation: 'h',
+      marker: {
+        color: data.map(function (d) { return MINERAL_COLORS[d.mineral] || '#999'; })
       },
-      {
-        y: data.map(function (d) { return d.mineral; }),
-        x: data.map(function (d) { return d.weight; }),
-        name: 'Quantity (kg)',
-        type: 'scatter',
-        mode: 'lines+markers',
-        line: { width: 1.5, dash: 'dot', color: '#666' },
-        marker: {
-          size: 6,
-          color: data.map(function (d) { return MINERAL_COLORS[d.mineral] || '#999'; })
-        },
-        xaxis: 'x2',
-        hovertemplate: '%{y}: %{x:,.0f} kg<extra></extra>'
-      }
-    ];
+      hovertemplate: isValue
+        ? '%{y}: %{x:$,.0f}<extra></extra>'
+        : '%{y}: %{x:,.0f} kg<extra></extra>'
+    }];
 
     var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
-      margin: { l: 130, r: 80, t: 10, b: 50 },
-      xaxis: {
-        title: { text: 'Value (USD)', font: { size: 11 } },
-        side: 'bottom',
-        gridcolor: '#e5e5e5',
-        linecolor: '#ccc',
+      margin: { l: 130, r: 30, t: 10, b: 50 },
+      xaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.xaxis, {
+        title: { text: isValue ? 'Value (USD)' : 'Quantity (kg)', font: { size: 11 } },
         dtick: undefined
-      },
-      xaxis2: {
-        title: { text: 'Quantity (kg)', font: { size: 11 } },
-        overlaying: 'x',
-        side: 'top',
-        gridcolor: 'rgba(0,0,0,0)',
-        linecolor: '#ccc'
-      },
+      }),
       yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, { automargin: true }),
-      hovermode: 'closest',
-      legend: { orientation: 'h', y: -0.3, x: 0.5, xanchor: 'center', font: { size: 11 } }
+      hovermode: 'closest'
     });
 
     document.getElementById('top-subtitle').textContent =
-      flowLabel + ' — value (bars) and quantity (dotted line) (' + year + ')';
+      flowLabel + ' ranked by ' + (isValue ? 'value' : 'quantity') + ' (' + year + ')';
 
     Plotly.newPlot('chart-top', traces, layout, PLOTLY_CONFIG);
   }
@@ -432,7 +419,7 @@
     var layout = {
       font: { family: FONT_FAMILY, color: '#333', size: 11 },
       paper_bgcolor: 'rgba(0,0,0,0)',
-      margin: { l: 20, r: 20, t: 10, b: 10 },
+      margin: { l: 40, r: 40, t: 30, b: 30 },
       showlegend: false
     };
 
@@ -507,11 +494,15 @@
     });
 
     var nodeLabels = nodes.map(function (n) {
-      return n.label + ' (' + n.share + '%)';
+      return n.side === 'importer'
+        ? n.label + ' (' + n.share + '%)'
+        : n.label;
     });
 
     var nodeHover = nodes.map(function (n) {
-      return n.label + ': ' + formatUSD(n.total) + ' (' + n.share + '% of total)';
+      return n.side === 'importer'
+        ? n.label + ': ' + formatUSD(n.total) + ' (' + n.share + '% of imports)'
+        : n.label + ': ' + formatUSD(n.total);
     });
 
     var traces = [{
@@ -702,6 +693,9 @@
 
     selYear.addEventListener('change', renderAll);
     selFlow.addEventListener('change', renderAll);
+
+    document.getElementById('overview-metric').addEventListener('change', renderTradeOverview);
+    document.getElementById('ranked-metric').addEventListener('change', renderTopMinerals);
 
     document.getElementById('country-select').addEventListener('change', renderCountryTimeSeries);
     document.getElementById('country-flow-select').addEventListener('change', function () {

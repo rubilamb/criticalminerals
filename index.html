@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Critical Minerals Trade Dashboard</title>
+  <title>Critical Minerals for Energy Transition Dashboard</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
   <!-- Header -->
   <header class="header">
     <div class="header-inner">
-      <h1>Critical <span>Minerals</span> Trade Dashboard</h1>
+      <h1>Critical Minerals for <span>Energy Transition</span> Dashboard</h1>
       <div class="header-meta" id="data-period">Loading data...</div>
     </div>
   </header>
@@ -81,7 +81,13 @@
         <div class="panel-header">
           <div>
             <div class="panel-title">Trade Overview</div>
-            <div class="panel-subtitle" id="overview-subtitle">All minerals with Geopolitical Risk Index</div>
+            <div class="panel-subtitle" id="overview-subtitle">Stacked area by mineral</div>
+          </div>
+          <div class="panel-controls">
+            <select id="overview-metric">
+              <option value="value">Value (USD)</option>
+              <option value="quantity">Quantity (kg)</option>
+            </select>
           </div>
         </div>
         <div class="chart-container" id="chart-overview" style="min-height:400px"></div>
@@ -108,6 +114,12 @@
             <div class="panel-title">Minerals Ranked</div>
             <div class="panel-subtitle" id="top-subtitle">Ranked for selected year</div>
           </div>
+          <div class="panel-controls">
+            <select id="ranked-metric">
+              <option value="value">Value (USD)</option>
+              <option value="quantity">Quantity (kg)</option>
+            </select>
+          </div>
         </div>
         <div class="chart-container" id="chart-top"></div>
       </div>
@@ -132,7 +144,7 @@
             <div class="panel-subtitle" id="share-subtitle">Country concentration</div>
           </div>
         </div>
-        <div class="chart-container" id="chart-share"></div>
+        <div class="chart-container" id="chart-share" style="min-height:420px"></div>
       </div>
 
       <!-- Panel 5: Sankey Trade Flows -->

@@ -12,7 +12,7 @@
   <header class="header">
     <div class="header-inner">
       <h1>Critical Minerals for <span>Energy Transition</span> Dashboard</h1>
-      <div class="header-meta" id="data-period">Data: 2010–2024 | 7 minerals | Source: UN Comtrade</div>
+      <div class="header-meta" id="data-period">Data: 2010–2024 | 6 minerals | Source: UN Comtrade</div>
     </div>
   </header>
 
@@ -180,54 +180,12 @@
 
     </div>
 
-    <!-- Research Charts Section -->
-    <div class="section-divider">
-      <div class="section-header">
-        <h2 class="section-title">Research Charts</h2>
-        <p class="section-subtitle">Detailed analysis from notebook-generated interactive figures</p>
-      </div>
-    </div>
-
-    <div class="dashboard">
-      <div class="panel full-width" id="research-charts-container">
-        <!-- Charts are loaded dynamically from charts/ directory -->
-      </div>
-    </div>
-
   </div>
 
   <!-- Libraries -->
   <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="js/dashboard.js"></script>
-  <script>
-    // Load research charts from manifest
-    fetch('charts/manifest.json')
-      .then(function(r) { return r.json(); })
-      .then(function(charts) {
-        var container = document.getElementById('research-charts-container');
-        if (!charts || charts.length === 0) {
-          container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem">No research charts available yet.</p>';
-          return;
-        }
-        container.innerHTML = '';
-        charts.forEach(function(chart) {
-          var wrapper = document.createElement('div');
-          wrapper.style.marginBottom = '1.5rem';
-          wrapper.innerHTML =
-            '<div class="panel-header"><div>' +
-            '<div class="panel-title">' + chart.title + '</div>' +
-            '<div class="panel-subtitle">' + (chart.description || '') + '</div>' +
-            '</div></div>' +
-            '<iframe src="charts/' + chart.file + '" width="100%" height="' + (chart.height || 600) + '" frameborder="0" style="border-radius:8px"></iframe>';
-          container.appendChild(wrapper);
-        });
-      })
-      .catch(function() {
-        var container = document.getElementById('research-charts-container');
-        container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem">No research charts available yet.</p>';
-      });
-  </script>
 
 </body>
 </html>

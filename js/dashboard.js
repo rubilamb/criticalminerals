@@ -14,10 +14,9 @@
     'Copper':        '#1f77b4',
     'Nickel':        '#9467bd',
     'Rare earths':   '#d62728',
-    'Silicon metal': '#17becf',
     'Manganese':     '#8c564b'
   };
-  const MINERAL_ORDER = ['Lithium', 'Cobalt', 'Copper', 'Nickel', 'Rare earths', 'Silicon metal', 'Manganese'];
+  const MINERAL_ORDER = ['Lithium', 'Cobalt', 'Copper', 'Nickel', 'Rare earths', 'Manganese'];
 
   const PIE_COLORS = [
     '#1f77b4', '#d62728', '#2ca02c', '#e67e22', '#9467bd',

@@ -7,6 +7,8 @@
   const BILATERAL_PATH = 'data/comtrade_crm_bilateral.csv';
   const FLOWS_PATH = 'data/comtrade_crm_flows.csv';
   const COUNTRY_TS_PATH = 'data/comtrade_crm_country_ts.csv';
+  const PRICES_MONTHLY_PATH = 'data/imf_crm_prices_monthly.csv';
+  const PRICES_ANNUAL_PATH = 'data/imf_crm_prices_annual.csv';
 
   const MINERAL_COLORS = {
     'Lithium':       '#2ca02c',
@@ -46,9 +48,12 @@
   var bilateralData = [];
   var flowsData = [];
   var countryTsData = [];
+  var pricesMonthly = [];
+  var pricesAnnual = [];
   var minerals = [];
   var years = [];
   var fullYears = [];
+  var priceMinerals = [];
 
   /* ---------- Helpers ---------- */
   function formatUSD(val) {
@@ -97,7 +102,9 @@
       parseCSV(DATA_PATH),
       parseCSV(BILATERAL_PATH),
       parseCSV(FLOWS_PATH),
-      parseCSV(COUNTRY_TS_PATH)
+      parseCSV(COUNTRY_TS_PATH),
+      parseCSV(PRICES_MONTHLY_PATH),
+      parseCSV(PRICES_ANNUAL_PATH)
     ]).then(function (results) {
       rawData = results[0].map(function (r) {
         return {
@@ -145,6 +152,26 @@
           weight: parseFloat(r.net_weight_kg)
         };
       }).filter(function (d) { return !isNaN(d.year) && d.value > 0; });
+
+      pricesMonthly = results[4].map(function (r) {
+        return {
+          mineral: r.mineral,
+          date: r.date,
+          transformation: r.data_transformation,
+          value: parseFloat(r.obs_value)
+        };
+      }).filter(function (d) { return !isNaN(d.value); });
+
+      pricesAnnual = results[5].map(function (r) {
+        return {
+          mineral: r.mineral,
+          year: parseInt(r.year, 10),
+          tradeValue: parseFloat(r.total_value_usd),
+          avgPrice: parseFloat(r.avg_price_usd)
+        };
+      }).filter(function (d) { return !isNaN(d.year) && !isNaN(d.avgPrice); });
+
+      priceMinerals = Array.from(new Set(pricesMonthly.map(function (d) { return d.mineral; }))).sort();
 
       minerals = MINERAL_ORDER.filter(function (m) {
         return rawData.some(function (d) { return d.mineral === m; });
@@ -679,6 +706,172 @@
       populateCountrySelect();
       renderCountryTimeSeries();
     });
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        switchTab(btn.getAttribute('data-tab'));
+      });
+    });
+
+    // Prices tab: mineral selector
+    document.getElementById('price-mineral-select').addEventListener('change', renderPriceVsTrade);
+  }
+
+  /* ========================================================
+     PRICES TAB
+     ======================================================== */
+
+  var pricesRendered = false;
+
+  /* ---------- Chart P1: Price Index — all minerals ---------- */
+  function renderPriceIndex() {
+    var indexData = pricesMonthly.filter(function (d) { return d.transformation === 'INDEX'; });
+
+    var traces = priceMinerals.map(function (m) {
+      var mData = indexData.filter(function (d) { return d.mineral === m; });
+      mData.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      return {
+        x: mData.map(function (d) { return d.date; }),
+        y: mData.map(function (d) { return d.value; }),
+        name: m,
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: MINERAL_COLORS[m] || '#999', width: 1.5 },
+        hovertemplate: m + ': %{y:.1f}<extra></extra>'
+      };
+    });
+
+    var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
+      yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {
+        title: { text: 'Index (2016 = 100)', font: { size: 11 } }
+      }),
+      legend: { orientation: 'h', y: -0.18, x: 0.5, xanchor: 'center', font: { size: 10 } },
+      xaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.xaxis, { dtick: undefined }),
+      hovermode: 'x unified'
+    });
+
+    Plotly.newPlot('chart-price-index', traces, layout, PLOTLY_CONFIG);
+  }
+
+  /* ---------- Chart P2: USD Prices — all minerals ---------- */
+  function renderPriceUSD() {
+    var usdData = pricesMonthly.filter(function (d) { return d.transformation === 'USD'; });
+
+    var traces = priceMinerals.map(function (m) {
+      var mData = usdData.filter(function (d) { return d.mineral === m; });
+      mData.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      return {
+        x: mData.map(function (d) { return d.date; }),
+        y: mData.map(function (d) { return d.value; }),
+        name: m,
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: MINERAL_COLORS[m] || '#999', width: 1.5 },
+        hovertemplate: m + ': $%{y:,.0f}<extra></extra>'
+      };
+    });
+
+    var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
+      yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {
+        title: { text: 'Price (USD per metric ton)', font: { size: 11 } }
+      }),
+      legend: { orientation: 'h', y: -0.18, x: 0.5, xanchor: 'center', font: { size: 10 } },
+      xaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.xaxis, { dtick: undefined }),
+      hovermode: 'x unified'
+    });
+
+    Plotly.newPlot('chart-price-usd', traces, layout, PLOTLY_CONFIG);
+  }
+
+  /* ---------- Chart P3: Price vs Trade Value — per mineral ---------- */
+  function renderPriceVsTrade() {
+    var mineral = document.getElementById('price-mineral-select').value;
+    var color = MINERAL_COLORS[mineral] || '#1f77b4';
+
+    var data = pricesAnnual.filter(function (d) { return d.mineral === mineral; });
+    data.sort(function (a, b) { return a.year - b.year; });
+
+    var traces = [
+      {
+        x: data.map(function (d) { return d.year; }),
+        y: data.map(function (d) { return d.avgPrice; }),
+        name: 'Avg Price (USD)',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: color, width: 2.5 },
+        marker: { size: 5 },
+        yaxis: 'y',
+        hovertemplate: 'Price: $%{y:,.0f}<extra></extra>'
+      },
+      {
+        x: data.map(function (d) { return d.year; }),
+        y: data.map(function (d) { return d.tradeValue; }),
+        name: 'Total Trade Value (USD)',
+        type: 'scatter',
+        mode: 'lines+markers',
+        line: { color: '#888', width: 1.8, dash: 'dash' },
+        marker: { size: 4, symbol: 'square' },
+        yaxis: 'y2',
+        hovertemplate: 'Trade: %{y:$,.0f}<extra></extra>'
+      }
+    ];
+
+    var layout = Object.assign({}, PLOTLY_LAYOUT_BASE, {
+      yaxis: Object.assign({}, PLOTLY_LAYOUT_BASE.yaxis, {
+        title: { text: 'Avg Price (USD)', font: { size: 11, color: color } },
+        tickfont: { color: color }
+      }),
+      yaxis2: {
+        title: { text: 'Total Trade Value (USD)', font: { size: 11, color: '#888' } },
+        overlaying: 'y',
+        side: 'right',
+        gridcolor: 'rgba(0,0,0,0)',
+        linecolor: '#ccc',
+        tickfont: { color: '#888' }
+      },
+      legend: { orientation: 'h', y: -0.25, x: 0.5, xanchor: 'center' }
+    });
+
+    document.getElementById('price-vs-trade-title').textContent =
+      mineral + ' \u2014 Price vs Trade Value';
+    document.getElementById('price-vs-trade-subtitle').textContent =
+      'Annual average price and total CIF import value';
+
+    Plotly.newPlot('chart-price-vs-trade', traces, layout, PLOTLY_CONFIG);
+  }
+
+  function renderPricesTab() {
+    renderPriceIndex();
+    renderPriceUSD();
+    renderPriceVsTrade();
+    pricesRendered = true;
+  }
+
+  function populatePriceMineralSelect() {
+    var sel = document.getElementById('price-mineral-select');
+    sel.innerHTML = '';
+    priceMinerals.forEach(function (m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      sel.appendChild(opt);
+    });
+    sel.value = priceMinerals.indexOf('Copper') !== -1 ? 'Copper' : priceMinerals[0];
+  }
+
+  /* ---------- Tab Switching ---------- */
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab').forEach(function (btn) {
+      btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+    });
+    document.querySelectorAll('.tab-content').forEach(function (section) {
+      section.classList.toggle('active', section.getAttribute('data-tab') === tabName);
+    });
+
+    if (tabName === 'prices' && !pricesRendered) {
+      renderPricesTab();
+    }
   }
 
   /* ---------- Init ---------- */
@@ -688,6 +881,7 @@
       document.getElementById('app').style.display = 'block';
 
       populateFilters();
+      populatePriceMineralSelect();
       bindEvents();
 
       renderTradeSection();

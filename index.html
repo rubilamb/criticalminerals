@@ -19,6 +19,7 @@
   <!-- Tabs -->
   <nav class="tab-bar">
     <button class="tab active" data-tab="trade">Trade Data</button>
+    <button class="tab" data-tab="prices">Prices</button>
   </nav>
 
   <!-- Loading State -->
@@ -29,6 +30,9 @@
 
   <!-- Main App -->
   <div id="app" style="display:none">
+
+    <!-- ==================== TRADE TAB ==================== -->
+    <div class="tab-content active" data-tab="trade">
 
     <!-- Filters -->
     <div class="filters">
@@ -179,6 +183,79 @@
       </div>
 
     </div>
+
+    </div><!-- end trade tab -->
+
+    <!-- ==================== PRICES TAB ==================== -->
+    <div class="tab-content" data-tab="prices">
+
+      <!-- Section: Price Index -->
+      <div class="section-divider" style="border-top:none; margin-top:0;">
+        <div class="section-header">
+          <h2 class="section-title">Commodity Price Index</h2>
+          <p class="section-subtitle">Monthly price index (2016 = 100) — Source: IMF Primary Commodity Price System</p>
+        </div>
+      </div>
+
+      <div class="dashboard">
+        <div class="panel full-width">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Price Index — All Minerals</div>
+              <div class="panel-subtitle">Monthly, 2016 = 100</div>
+            </div>
+          </div>
+          <div class="chart-container" id="chart-price-index" style="min-height:400px"></div>
+        </div>
+      </div>
+
+      <!-- Section: USD Prices -->
+      <div class="section-divider">
+        <div class="section-header">
+          <h2 class="section-title">Commodity Prices (USD)</h2>
+          <p class="section-subtitle">Monthly spot prices in US dollars per metric ton</p>
+        </div>
+      </div>
+
+      <div class="dashboard">
+        <div class="panel full-width">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">USD Prices — All Minerals</div>
+              <div class="panel-subtitle">Monthly, USD per metric ton</div>
+            </div>
+          </div>
+          <div class="chart-container" id="chart-price-usd" style="min-height:400px"></div>
+        </div>
+      </div>
+
+      <!-- Section: Price vs Trade Value -->
+      <div class="section-divider">
+        <div class="section-header">
+          <h2 class="section-title">Price vs Trade Value</h2>
+          <p class="section-subtitle">Annual average price (left axis) vs total traded value (right axis) per commodity</p>
+        </div>
+        <div class="filters" style="margin-top:0.75rem; padding:0;">
+          <div class="filter-group">
+            <label>Mineral</label>
+            <select id="price-mineral-select"></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard">
+        <div class="panel full-width">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title" id="price-vs-trade-title">Price vs Trade Value</div>
+              <div class="panel-subtitle" id="price-vs-trade-subtitle">Select a mineral above</div>
+            </div>
+          </div>
+          <div class="chart-container" id="chart-price-vs-trade" style="min-height:400px"></div>
+        </div>
+      </div>
+
+    </div><!-- end prices tab -->
 
   </div>
 

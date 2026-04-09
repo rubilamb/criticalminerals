@@ -295,6 +295,15 @@ body {
   font-weight: 600;
 }
 
+/* ===== Tab Content ===== */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
 /* ===== Loading ===== */
 .loading-overlay {
   display: flex;
